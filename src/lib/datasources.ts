@@ -38,18 +38,24 @@ export const DATA_SOURCES: DataSource[] = [
   },
   {
     id: "countries",
-    label: "Países (Europa)",
-    url: "https://restcountries.com/v3.1/region/europe?fields=name,population,area",
+    label: "Países (World Bank)",
+    url: "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&date=2022&per_page=400",
     fields: [
       { key: "population", label: "População" },
-      { key: "area", label: "Área (km²)" },
+      { key: "year", label: "Ano" },
     ],
-    parse: (raw: any[]) =>
-      raw.slice(0, 80).map((c) => ({
-        name: c.name?.common ?? "?",
-        values: { population: c.population ?? 0, area: Math.round(c.area ?? 0) },
-      })),
+    parse: (raw: any) => {
+      const rows: any[] = Array.isArray(raw) && Array.isArray(raw[1]) ? raw[1] : [];
+      return rows
+        .filter((r) => r && r.value != null && r.country?.value && r.countryiso3code)
+        .slice(0, 80)
+        .map((r) => ({
+          name: r.country.value,
+          values: { population: Number(r.value) || 0, year: Number(r.date) || 0 },
+        }));
+    },
   },
+
   {
     id: "rickmorty",
     label: "Rick and Morty",
