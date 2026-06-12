@@ -117,3 +117,41 @@ export function countBinary(arr: number[], target: number) {
   }
   return c;
 }
+
+// --- Substring search (over names) ---
+export interface SubstringStep {
+  index: number;            // currently checked
+  matched: boolean;         // current item matches?
+  matches: number[];        // indices found so far
+  checked: number[];        // indices already visited
+  comparisons: number;
+  message: string;
+  done: boolean;
+}
+
+export function* substringSearch(names: string[], query: string): Generator<SubstringStep> {
+  const q = query.toLowerCase();
+  const matches: number[] = [];
+  const checked: number[] = [];
+  for (let i = 0; i < names.length; i++) {
+    checked.push(i);
+    const hit = names[i].toLowerCase().includes(q);
+    if (hit) matches.push(i);
+    yield {
+      index: i,
+      matched: hit,
+      matches: matches.slice(),
+      checked: checked.slice(),
+      comparisons: i + 1,
+      message: `Verificando "${names[i]}": contém "${query}"? → ${hit ? "SIM" : "NÃO"}`,
+      done: false,
+    };
+  }
+  yield {
+    index: -1, matched: false,
+    matches: matches.slice(), checked: checked.slice(),
+    comparisons: names.length,
+    message: `Busca concluída: ${matches.length} de ${names.length} itens contêm "${query}".`,
+    done: true,
+  };
+}

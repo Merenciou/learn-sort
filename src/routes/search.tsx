@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDataset } from "@/lib/dataset-context";
 import { SearchVisualizer } from "@/components/SearchVisualizer";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -16,14 +15,25 @@ export const Route = createFileRoute("/search")({
 
 function Page() {
   const { source, field, items, size } = useDataset();
-  const [sorted, setSorted] = useState(false);
+  // Local field state for the Search screen (independent from the header).
+  const [localField, setLocalField] = useState<string>(field);
 
-  const { values, names } = useMemo(() => {
+  useEffect(() => {
+    if (!localField && field) setLocalField(field);
+  }, [field, localField]);
+
+  const effectiveField = localField || field;
+
+  const { values, sortedValues, names } = useMemo(() => {
     const slice = items.slice(0, size);
-    let arr = slice.map((it) => ({ v: it.values[field] ?? 0, n: it.name }));
-    if (sorted) arr = arr.slice().sort((a, b) => a.v - b.v);
-    return { values: arr.map((x) => x.v), names: arr.map((x) => x.n) };
-  }, [items, field, size, sorted]);
+    const arr = slice.map((it) => ({ v: it.values[effectiveField] ?? 0, n: it.name }));
+    const sortedArr = arr.slice().sort((a, b) => a.v - b.v);
+    return {
+      values: arr.map((x) => x.v),
+      sortedValues: sortedArr.map((x) => x.v),
+      names: arr.map((x) => x.n),
+    };
+  }, [items, effectiveField, size]);
 
   if (!source || values.length === 0) {
     return (
@@ -36,13 +46,15 @@ function Page() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold mr-auto">Busca</h1>
-        <Button size="sm" variant={sorted ? "default" : "outline"} onClick={() => setSorted((s) => !s)}>
-          {sorted ? "Ordenado ✓" : "Ordenar dataset"}
-        </Button>
-      </div>
-      <SearchVisualizer array={values} names={names} isSorted={sorted} />
+      <h1 className="text-xl font-bold">Busca</h1>
+      <SearchVisualizer
+        values={values}
+        sortedValues={sortedValues}
+        names={names}
+        fields={source.fields}
+        selectedField={effectiveField}
+        onFieldChange={setLocalField}
+      />
     </div>
   );
 }
