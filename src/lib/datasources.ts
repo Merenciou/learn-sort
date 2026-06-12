@@ -38,8 +38,8 @@ export const DATA_SOURCES: DataSource[] = [
   },
   {
     id: "countries",
-    label: "REST Countries",
-    url: "https://restcountries.com/v3.1/all?fields=name,population,area",
+    label: "Países (Europa)",
+    url: "https://restcountries.com/v3.1/region/europe?fields=name,population,area",
     fields: [
       { key: "population", label: "População" },
       { key: "area", label: "Área (km²)" },
@@ -47,7 +47,7 @@ export const DATA_SOURCES: DataSource[] = [
     parse: (raw: any[]) =>
       raw.slice(0, 80).map((c) => ({
         name: c.name?.common ?? "?",
-        values: { population: c.population ?? 0, area: c.area ?? 0 },
+        values: { population: c.population ?? 0, area: Math.round(c.area ?? 0) },
       })),
   },
   {
@@ -75,21 +75,26 @@ export const DATA_SOURCES: DataSource[] = [
     parse: (raw: any[]) =>
       raw.slice(0, 80).map((s) => ({
         name: s.name,
-        values: { rating: (s.rating?.average ?? 0) * 10, weight: s.weight ?? 0 },
+        values: { rating: Math.round((s.rating?.average ?? 0) * 10), weight: s.weight ?? 0 },
       })),
   },
   {
-    id: "spacex",
-    label: "SpaceX Launches",
-    url: "https://api.spacexdata.com/v4/launches",
+    id: "ghibli",
+    label: "Studio Ghibli",
+    url: "https://ghibliapi.vercel.app/films",
     fields: [
-      { key: "date_unix", label: "Data (unix)" },
-      { key: "flight_number", label: "Nº de voo" },
+      { key: "year", label: "Ano" },
+      { key: "score", label: "Avaliação (RT)" },
+      { key: "duration", label: "Duração (min)" },
     ],
     parse: (raw: any[]) =>
-      raw.slice(0, 80).map((l) => ({
-        name: l.name,
-        values: { date_unix: Math.floor((l.date_unix ?? 0) / 100000), flight_number: l.flight_number ?? 0 },
+      raw.map((f) => ({
+        name: f.title,
+        values: {
+          year: Number(f.release_date) || 0,
+          score: Number(f.rt_score) || 0,
+          duration: Number(f.running_time) || 0,
+        },
       })),
   },
 ];
