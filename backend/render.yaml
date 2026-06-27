@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: algolab-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: "*"
