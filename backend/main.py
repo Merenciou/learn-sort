@@ -15,9 +15,13 @@ DATA_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="AlgoLab Persistence API", version="1.0.0")
 
+# CORS: lista separada por vírgula em ALLOWED_ORIGINS, ou "*" (default) para liberar tudo.
+_origins_env = os.environ.get("ALLOWED_ORIGINS", "*").strip()
+_allow_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dev: livre. Em produção, restringir.
+    allow_origins=_allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -155,4 +159,5 @@ def inspect_endpoint(source_id: str, format: str = Query(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

@@ -70,6 +70,7 @@ export function PersistencePanel() {
   }
 
   if (backendOnline === false) {
+    const isLocalhost = api.baseUrl.includes("localhost") || api.baseUrl.includes("127.0.0.1");
     return (
       <div className="rounded-md border border-destructive bg-destructive/5 p-6 space-y-3">
         <div className="flex items-center gap-2 font-semibold text-destructive">
@@ -77,16 +78,32 @@ export function PersistencePanel() {
         </div>
         <p className="text-sm text-muted-foreground">
           Não foi possível conectar em <code className="font-mono text-xs">{api.baseUrl}</code>.
-          Para usar a persistência, rode o backend FastAPI:
         </p>
-        <pre className="bg-card border rounded p-3 text-xs overflow-auto"><code>{`cd backend
+        {isLocalhost ? (
+          <>
+            <p className="text-sm text-muted-foreground">Rode o backend FastAPI localmente:</p>
+            <pre className="bg-card border rounded p-3 text-xs overflow-auto"><code>{`cd backend
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000`}</code></pre>
-        <p className="text-xs text-muted-foreground">
-          Veja <code className="font-mono">backend/README.md</code> para detalhes.
-        </p>
+            <p className="text-xs text-muted-foreground">
+              Para publicar o app com o backend acessível ao seu professor, hospede o backend
+              (Render / Railway / Fly.io) e defina <code className="font-mono">VITE_API_URL</code> no
+              frontend apontando para essa URL. Detalhes em <code className="font-mono">README.md</code>.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              A URL configurada em <code className="font-mono">VITE_API_URL</code> não está respondendo.
+              Pode ser cold start (Render free demora ~30s na primeira chamada) ou o serviço está fora do ar.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Aguarde alguns segundos e clique em "Verificar novamente". Se persistir, confira o deploy do backend.
+            </p>
+          </>
+        )}
         <Button size="sm" onClick={recheckBackend}><RefreshCw className="size-4" /> Verificar novamente</Button>
       </div>
     );
