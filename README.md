@@ -113,3 +113,51 @@ Veja [`backend/README.md`](backend/README.md) para a referência completa dos en
 | Modo offline | Botão "Carregar do arquivo" em `/persistence` + `GET /api/load/{id}` |
 | Painel comparativo + hexdump | `src/components/PersistencePanel.tsx` + `GET /api/compare`, `GET /api/inspect` |
 | Integração ordenação/busca | `DatasetProvider` recebe os itens do arquivo e alimenta `/visualize`, `/compare`, `/search` |
+
+## Publicando o app (frontend Lovable + backend Python na nuvem)
+
+O Lovable publica só o frontend. Para o professor (ou qualquer pessoa) testar os endpoints do backend pela internet, o `backend/` precisa estar hospedado em um serviço que rode Python. O fluxo é: **hospeda o backend → copia a URL pública → define `VITE_API_URL` no frontend → publica no Lovable**.
+
+### 1. Hospedar o backend no Render (recomendado, free tier)
+
+Pré-requisito: projeto no GitHub.
+
+1. Acesse [render.com](https://render.com) e faça login com GitHub.
+2. **New +** → **Web Service** → conecte este repositório.
+3. Render detecta o `backend/render.yaml` automaticamente. Caso peça manualmente:
+   - **Root Directory**: `backend`
+   - **Runtime**: `Docker` (usa o `backend/Dockerfile`)
+   - **Plan**: Free
+4. Clique em **Create Web Service** e aguarde o build (~3-5 min na primeira vez).
+5. Anote a URL gerada, algo como `https://algolab-backend.onrender.com`.
+6. Teste: abra `https://SUA-URL.onrender.com/docs` — deve mostrar o Swagger do FastAPI.
+
+> **Cold start**: o plano free do Render hiberna o serviço após ~15 min sem requisições. A primeira chamada depois disso demora ~30s. Para uma apresentação, abra a URL uma vez antes para "esquentar".
+
+Alternativas equivalentes: **Railway** (`railway up` na pasta `backend/`), **Fly.io** (`fly launch` dentro de `backend/`, usa o mesmo Dockerfile), **Hugging Face Spaces** (SDK Docker apontando para o Dockerfile).
+
+### 2. Apontar o frontend para o backend público
+
+Crie um `.env` na raiz do projeto (copie de `.env.example`):
+
+```
+VITE_API_URL=https://algolab-backend.onrender.com
+```
+
+### 3. Publicar o frontend pelo Lovable
+
+Clique em **Publish** no canto superior direito do Lovable. O Vite faz o build com o `VITE_API_URL` que você definiu e o site publicado já chama o backend hospedado.
+
+### 4. Como o professor testa
+
+Basta abrir o link publicado (algo como `https://learn-sort.lovable.app`) e ir na aba **Persistência**:
+- Clica em **Salvar nos 4 formatos** → backend baixa o dataset, grava JSON/CSV/pickle/struct, devolve tabela comparativa.
+- Inspeciona texto vs binário (preview + hexdump).
+- Carrega offline (lê do disco do servidor sem chamar API externa).
+
+Para validar os endpoints diretamente sem UI, o professor pode usar o Swagger em `https://SUA-URL.onrender.com/docs`.
+
+### Alternativas se você não quer hospedar
+
+- **Túnel local (Cloudflare Tunnel / ngrok)**: roda `uvicorn` no seu PC, expõe via `cloudflared tunnel --url http://localhost:8000`, usa essa URL como `VITE_API_URL`. Funciona só com seu PC ligado.
+- **Tudo local**: professor baixa o ZIP, segue as instruções deste README para rodar frontend + backend localmente.
