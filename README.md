@@ -67,3 +67,49 @@ Build de produção:
 ```bash
 bun run build
 ```
+
+## Backend Python — Persistência
+
+Há um backend FastAPI em [`backend/`](backend/) que implementa cache do dataset em **4 formatos**:
+
+| Formato | Tipo | Módulo Python |
+|---|---|---|
+| JSON | texto | `json` |
+| CSV | texto | `csv` |
+| pickle | binário | `pickle` |
+| struct | binário (registro fixo) | `struct` |
+
+### Rodar
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Crie um `.env` na raiz do frontend (opcional, default já aponta para `localhost:8000`):
+
+```
+VITE_API_URL=http://localhost:8000
+```
+
+Em seguida, abra a aba **Persistência** no app. Lá você pode:
+
+1. **Salvar nos 4 formatos** — baixa o dataset e grava `dados.json`, `dados.csv`, `dados.pkl` e `dados.bin` em `backend/data/`.
+2. Ver o **painel comparativo** (tamanho em KB + tempo de save/load).
+3. Inspecionar **texto vs binário** lado a lado (preview do JSON × hexdump do pickle).
+4. **Carregar do arquivo (offline)** — alimenta o `DatasetProvider` lendo do disco, sem chamar a API. Os algoritmos de ordenação/busca funcionam normalmente sobre esses dados.
+
+Veja [`backend/README.md`](backend/README.md) para a referência completa dos endpoints e o layout do formato `struct`.
+
+### Mapa do trabalho (500 pts)
+
+| Critério | Onde |
+|---|---|
+| Texto (JSON/CSV) | `backend/storage/json_store.py`, `backend/storage/csv_store.py` |
+| Binário (pickle/struct) | `backend/storage/pickle_store.py`, `backend/storage/struct_store.py` |
+| Modo offline | Botão "Carregar do arquivo" em `/persistence` + `GET /api/load/{id}` |
+| Painel comparativo + hexdump | `src/components/PersistencePanel.tsx` + `GET /api/compare`, `GET /api/inspect` |
+| Integração ordenação/busca | `DatasetProvider` recebe os itens do arquivo e alimenta `/visualize`, `/compare`, `/search` |

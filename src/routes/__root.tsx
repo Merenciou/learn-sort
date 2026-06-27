@@ -116,6 +116,7 @@ function RootComponent() {
                 <NavLink to="/visualize" label="Visualizar" />
                 <NavLink to="/compare" label="Comparar" />
                 <NavLink to="/search" label="Buscar" />
+                <NavLink to="/persistence" label="Persistência" />
               </nav>
             </div>
           </header>
