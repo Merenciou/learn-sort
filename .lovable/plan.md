@@ -1,87 +1,55 @@
+## O problema
 
-# Trabalho Final — Persistência de Dados (Python + Frontend)
+O Lovable publica só o frontend (Cloudflare Workers/TS). O backend FastAPI em `backend/` é Python — **não roda no Lovable**. Para o professor testar de qualquer lugar, o Python precisa estar hospedado em algum lugar público, e o frontend publicado precisa apontar para essa URL pública via `VITE_API_URL`.
 
-## Como vamos trabalhar (importante ler antes)
+## Opções (escolha uma)
 
-O preview do Lovable **não executa Python** — ele roda só o frontend (Cloudflare Workers/TS). Então a estratégia híbrida funciona assim:
+### Opção A — Hospedar o backend em nuvem grátis (recomendado)
 
-1. Eu crio aqui, no mesmo repositório, uma pasta `backend/` com o projeto FastAPI completo (código, `requirements.txt`, README de execução).
-2. Eu adapto o frontend para conversar com esse backend via `http://localhost:8000` (configurável por `VITE_API_URL`).
-3. Você baixa o projeto, roda `uvicorn` localmente e o frontend (rodando local com `bun dev` ou direto no preview Lovable apontando para `localhost:8000`) consome a API.
-4. As iterações de código (ajustar endpoint, mudar layout do painel, melhorar hexdump) continuam aqui comigo — você só re-baixa quando quiser testar.
+Sobe o `backend/` em um serviço gratuito que aceita Python/FastAPI, e o frontend publicado no Lovable consome essa URL. Professor só abre o link do Lovable e tudo funciona.
 
-Trade-off: o preview do Lovable não vai mostrar os botões "Salvar/Offline" funcionando de verdade enquanto o FastAPI não estiver rodando na sua máquina. Para a apresentação do trabalho, você roda os dois lados localmente.
+Serviços que funcionam bem para FastAPI no plano grátis:
 
----
-
-## O que será construído
-
-### 1. Backend Python (`backend/`)
-
-Estrutura:
-
-```text
-backend/
-  main.py              # FastAPI app + CORS
-  storage/
-    __init__.py
-    json_store.py      # json.dump/load
-    csv_store.py       # csv.DictWriter/DictReader
-    pickle_store.py    # pickle.dump/load
-    struct_store.py    # struct.pack/unpack (registro fixo)
-  data/                # arquivos gerados (.json/.csv/.pkl/.bin) — gitignored
-  requirements.txt
-  README.md            # como rodar: venv + pip install + uvicorn
-```
-
-Endpoints:
-
-| Método | Rota | Função |
+| Serviço | Prós | Contras |
 |---|---|---|
-| `GET`  | `/api/sources` | Lista as fontes públicas disponíveis (espelha `datasources.ts`) |
-| `GET`  | `/api/fetch/{source_id}` | Baixa da API pública, devolve JSON normalizado `[{name, values}]` |
-| `POST` | `/api/save/{source_id}?format=json\|csv\|pickle\|struct` | Salva o dataset no formato pedido, retorna `{path, size_bytes, elapsed_ms}` |
-| `GET`  | `/api/load/{source_id}?format=...` | **Modo offline**: lê do disco, devolve os dados + métricas de leitura |
-| `GET`  | `/api/compare/{source_id}` | Salva nos 4 formatos, mede tempo de save/load + tamanho, devolve tabela comparativa |
-| `GET`  | `/api/inspect/{source_id}?format=...` | Para texto: devolve primeiros ~500 chars. Para binário: devolve hexdump (offset, hex, ascii) dos primeiros ~256 bytes |
+| **Render** | Deploy via GitHub, free tier, suporta FastAPI nativo | "Cold start" de ~30s após inatividade |
+| **Railway** | Muito simples, deploy por GitHub | Free tier limitado (créditos mensais) |
+| **Fly.io** | Rápido, global | Pede cartão para verificar (não cobra) |
+| **Hugging Face Spaces (Docker/FastAPI)** | 100% grátis, sem cartão | Menos "profissional", mas funciona |
 
-Cada store implementa `save(path, items) -> elapsed_ms` e `load(path) -> (items, elapsed_ms)`. Todas as leituras de texto usam `with open(..., encoding="utf-8")`. `load` trata `FileNotFoundError` retornando HTTP 404 com mensagem clara.
+Fluxo:
+1. Adiciono ao projeto: `backend/Dockerfile` + `backend/.dockerignore` + ajuste de CORS para liberar o domínio publicado do Lovable + variável `PORT` lida do ambiente.
+2. Adiciono `.env.example` no frontend com `VITE_API_URL=https://SEU-BACKEND.onrender.com`.
+3. Atualizo `README.md` com passo a passo de deploy no serviço escolhido (com prints/comandos).
+4. Você sobe o backend uma vez, copia a URL, define `VITE_API_URL` e publica o frontend pelo Lovable.
+5. Professor abre o link publicado e usa a aba **Persistência** normalmente.
 
-O `struct_store` usa registro de tamanho fixo: `name` truncado para 32 bytes UTF-8 + N floats (um por campo numérico do dataset), com header indicando a contagem e os nomes dos campos.
+### Opção B — Backend rodando na sua máquina + túnel público (Cloudflare Tunnel / ngrok)
 
-CORS liberado para `http://localhost:8080` e `http://localhost:5173` (dev do frontend).
+Você roda `uvicorn` localmente e expõe via túnel. Frontend publicado aponta para a URL do túnel. Funciona só enquanto seu PC estiver ligado — bom para a apresentação, ruim para "deixar o professor testar quando quiser".
 
-### 2. Frontend — alterações pontuais
+### Opção C — Portar tudo para TypeScript (sem Python)
 
-- **`src/lib/api-client.ts`** (novo): wrapper `fetch` usando `import.meta.env.VITE_API_URL ?? "http://localhost:8000"`.
-- **`src/lib/datasources.ts`**: adicionar opção "via backend" — quando o usuário escolhe a fonte, mostrar dois botões: **"Carregar da API"** (comportamento atual, direto do JS) e **"Carregar via backend"** (chama `/api/fetch/...` e em seguida `/api/save/...` nos 4 formatos automaticamente).
-- **`src/routes/index.tsx`**: adicionar bloco "Persistência" abaixo da escolha de dataset:
-  - Botão **"Carregar do arquivo (offline)"** → chama `/api/load/...` com o formato selecionado.
-  - Dropdown de formato (JSON / CSV / pickle / struct).
-  - Indicador de origem dos dados atuais ("API direta" / "backend live" / "arquivo: dados.pkl").
-- **Novo componente `src/components/PersistencePanel.tsx`**:
-  - Tabela comparativa (formato, tamanho em KB, tempo save, tempo load) usando `/api/compare`.
-  - Gráfico de barras simples (Recharts) com os 4 tamanhos lado a lado.
-  - Inspetor lado-a-lado: trecho do JSON/CSV (monospace, syntax-highlight básico) vs hexdump do pickle/struct (offset | hex | ascii em fonte monoespaçada).
-- **Nova rota `src/routes/persistence.tsx`**: hospeda o `PersistencePanel`, adiciona item no menu do `__root.tsx`.
-- **Estado de loading e erro**: se o backend estiver offline, mostrar banner "Backend Python não está rodando. Veja `backend/README.md`".
+Reescrevo os 4 stores em TS como `createServerFn` no próprio Lovable. Vantagem: tudo publica junto, zero infraestrutura externa. Desvantagem: descaracteriza o trabalho — o critério pede persistência em **Python** (json/csv/pickle/struct). `pickle` e `struct` não têm equivalente nativo direto em JS; teria que simular. **Não recomendo** se o trabalho exige Python.
 
-### 3. Integração ordenação/busca
+### Opção D — Empacotar backend como executável (.exe) para o professor rodar localmente
 
-Quando o usuário carrega via backend ou via arquivo, os dados entram no mesmo `DatasetProvider` que já alimenta `visualize`, `compare` e `search`. Nenhum algoritmo precisa mudar — eles continuam recebendo `number[]` do contexto.
+Gero um `.exe` (PyInstaller) que o professor baixa e abre — sobe `localhost:8000` sozinho. Frontend publicado aponta para `localhost:8000`. Funciona, mas o professor precisa rodar o executável e confiar nele (Windows pode bloquear).
 
-### 4. README atualizado
+## Minha recomendação
 
-Seção nova "Backend e Persistência" explicando:
-- Como rodar (`cd backend && python -m venv .venv && pip install -r requirements.txt && uvicorn main:app --reload`).
-- Como configurar `VITE_API_URL` no frontend.
-- Discussão comparativa dos 4 formatos (tamanho/tempo/legibilidade/portabilidade) — preenchida com números reais após você rodar uma vez.
-- Checklist mapeando cada critério dos 500 pts ao arquivo/endpoint correspondente.
+**Opção A com Render** — é o caminho mais limpo: link único do Lovable, sem PC ligado, sem `.exe`, mantém o backend Python íntegro. O cold start é aceitável para uma avaliação.
 
----
+Se aprovar, preciso saber:
+1. Qual serviço de hospedagem do backend você prefere (Render / Railway / Fly / HF Spaces / outro)?
+2. Você já tem o projeto no GitHub? (Render/Railway puxam de lá.)
+3. O `VITE_API_URL` final você define quando souber a URL do backend, ou quer que eu já deixe um placeholder no README?
 
-## Resposta direta à sua pergunta
+## O que vou gerar quando aprovar
 
-**A melhor abordagem para você é a híbrida que escolhemos**: eu gero tudo aqui (backend Python + frontend integrado + README), você baixa, roda local. As iterações de ajuste fino você continua fazendo comigo aqui — outras IAs serviriam se quisesse uma segunda opinião, mas não são necessárias porque o escopo está bem definido.
-
-Aprove o plano e eu já implemento backend + frontend + README na próxima resposta.
+- `backend/Dockerfile` e `backend/.dockerignore`
+- Ajuste em `backend/main.py`: CORS dinâmico (env var `ALLOWED_ORIGINS`) e `PORT` do ambiente
+- `backend/render.yaml` (ou `railway.json` / `fly.toml` conforme escolha)
+- `.env.example` na raiz com `VITE_API_URL=`
+- Seção "Deploy do backend" no `README.md` com o passo a passo do serviço escolhido
+- Banner mais claro no `PersistencePanel` quando `VITE_API_URL` não estiver setado
