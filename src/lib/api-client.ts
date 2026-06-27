@@ -1,8 +1,24 @@
 /**
  * Cliente HTTP para o backend Python (FastAPI).
- * Configure VITE_API_URL no .env do frontend. Default: http://localhost:8000.
+ *
+ * Resolução da BASE_URL:
+ * 1. VITE_API_URL (env do build) — usado se definido.
+ * 2. Em localhost — http://localhost:8000 (dev).
+ * 3. Caso contrário (produção) — URL pública do Render.
  */
-const BASE_URL = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
+const PROD_API_URL = "https://algolab-backend-0hao.onrender.com";
+const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
+
+function resolveBaseUrl(): string {
+  if (envUrl && envUrl.trim().length > 0) return envUrl;
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    if (h === "localhost" || h === "127.0.0.1") return "http://localhost:8000";
+  }
+  return PROD_API_URL;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export type StorageFormat = "json" | "csv" | "pickle" | "struct";
 
