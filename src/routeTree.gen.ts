@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VisualizeRouteImport } from './routes/visualize'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as PersistenceRouteImport } from './routes/persistence'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const VisualizeRoute = VisualizeRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersistenceRoute = PersistenceRouteImport.update({
+  id: '/persistence',
+  path: '/persistence',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompareRoute = CompareRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
+  '/persistence': typeof PersistenceRoute
   '/search': typeof SearchRoute
   '/visualize': typeof VisualizeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
+  '/persistence': typeof PersistenceRoute
   '/search': typeof SearchRoute
   '/visualize': typeof VisualizeRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
+  '/persistence': typeof PersistenceRoute
   '/search': typeof SearchRoute
   '/visualize': typeof VisualizeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compare' | '/search' | '/visualize'
+  fullPaths: '/' | '/compare' | '/persistence' | '/search' | '/visualize'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compare' | '/search' | '/visualize'
-  id: '__root__' | '/' | '/compare' | '/search' | '/visualize'
+  to: '/' | '/compare' | '/persistence' | '/search' | '/visualize'
+  id: '__root__' | '/' | '/compare' | '/persistence' | '/search' | '/visualize'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompareRoute: typeof CompareRoute
+  PersistenceRoute: typeof PersistenceRoute
   SearchRoute: typeof SearchRoute
   VisualizeRoute: typeof VisualizeRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/persistence': {
+      id: '/persistence'
+      path: '/persistence'
+      fullPath: '/persistence'
+      preLoaderRoute: typeof PersistenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compare': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompareRoute: CompareRoute,
+  PersistenceRoute: PersistenceRoute,
   SearchRoute: SearchRoute,
   VisualizeRoute: VisualizeRoute,
 }
