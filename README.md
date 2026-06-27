@@ -138,15 +138,19 @@ Alternativas equivalentes: **Railway** (`railway up` na pasta `backend/`), **Fly
 
 ### 2. Apontar o frontend para o backend público
 
-Crie um `.env` na raiz do projeto (copie de `.env.example`):
+A URL do Render (`https://algolab-backend-0hao.onrender.com`) **já está embutida como fallback de produção** em [`src/lib/api-client.ts`](src/lib/api-client.ts), então o `Publish` do Lovable funciona sem configuração extra.
+
+Se quiser sobrescrever (apontar para outro backend), crie um `.env` na raiz copiando de `.env.example`:
 
 ```
-VITE_API_URL=https://algolab-backend.onrender.com
+VITE_API_URL=https://outro-backend.onrender.com
 ```
+
+> O `.env` é lido apenas em builds locais (`bun dev` / `bun run build` no seu PC). Como o `.gitignore` ignora `.env`, o Lovable nunca o vê — por isso o fallback no código é o que garante o funcionamento do site publicado.
 
 ### 3. Publicar o frontend pelo Lovable
 
-Clique em **Publish** no canto superior direito do Lovable. O Vite faz o build com o `VITE_API_URL` que você definiu e o site publicado já chama o backend hospedado.
+Clique em **Publish** no canto superior direito do Lovable. O site publicado já chama o backend do Render.
 
 ### 4. Como o professor testa
 
